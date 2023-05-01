@@ -5,15 +5,17 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class AccountingLedgerApp {
 
+    public static ArrayList<Transaction> transactions = new ArrayList<>();
     public static Scanner inputScanner = new Scanner(System.in);
 
     public static void main(String[] args) {
 
-        getTransactions();
+        transactions.addAll(getTransactions());
 
         for(boolean running = homeMenu(); running; running = homeMenu()){
             System.out.println();
@@ -21,7 +23,9 @@ public class AccountingLedgerApp {
 
     }
 
-    public static void getTransactions() {
+    public static ArrayList<Transaction> getTransactions() {
+
+        ArrayList<Transaction> transactions = new ArrayList<>();
 
         try {
 
@@ -40,8 +44,7 @@ public class AccountingLedgerApp {
                 float amount = Float.parseFloat(lineSegments[4]);
 
                 Transaction newTransaction = new Transaction(date, time, description, vendor, amount);
-
-//                System.out.println(newTransaction.asText());
+                transactions.add(newTransaction);
 
             }
 
@@ -54,31 +57,85 @@ public class AccountingLedgerApp {
 
         }
 
+        return transactions;
+
     }
 
     public static boolean homeMenu() {
+        System.out.println("HOME MENU");
         System.out.println("D) Add Deposit");
         System.out.println("P) Make Payment (Debit)");
         System.out.println("L) Ledger");
         System.out.println("X) Exit");
         switch (inputScanner.nextLine().toUpperCase()) {
             case "D":
-                //add deposit
-                System.out.println("This is where I would run the addDeposit() method, IF I HAD ONE!");
+                System.out.println("This is where I would run the addAmount() method, IF I HAD ONE!");
                 return true;
             case "P":
-                //make payment a.k.a. debit
                 System.out.println("This is where I would run the makePayment() method, IF I HAD ONE!");
                 return true;
             case "L":
-                //ledgerMenu()
-                System.out.println("This is where I would run the ledgerMenu() method, IF I HAD ONE!");
+                ledgerMenu();
                 return true;
             default:
-                // X - exit
                 System.out.println("Exiting application.");
                 return false;
         }
+    }
+
+    public static void addDeposit() {
+
+
+
+    }
+
+    public static void makePayment() {
+
+
+
+    }
+
+    public static void ledgerMenu() {
+        System.out.println("LEDGER MENU");
+        System.out.println("A) View All");
+        System.out.println("D) View Deposits");
+        System.out.println("P) View Payments");
+        System.out.println("R) View Reports");
+        System.out.println("H) Home");
+        switch (inputScanner.nextLine().toUpperCase()) {
+            case "A":
+                viewAll();
+                break;
+            case "D":
+                System.out.println("This is where I would run the viewDeposits() method, IF I HAD ONE!");
+                break;
+            case "P":
+                System.out.println("This is where I would run the viewPayments() method, IF I HAD ONE!");
+                break;
+            case "R":
+                System.out.println("This is where I would run the viewReports() method, IF I HAD ONE!");
+                break;
+            default:
+                System.out.println("Returning to home menu.");
+                break;
+        }
+    }
+
+    public static void viewAll() {
+        for (Transaction transaction : transactions) {
+            System.out.println(transaction.asText());
+        }
+    }
+
+    public static void reportsMenu() {
+
+        // 1 - month to date
+        // 2 - previous month
+        // 3 - year to date
+        // 4 - previous year
+        // 5 - search by vendor
+        // 0 - back
+
     }
 
 }
