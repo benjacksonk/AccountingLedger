@@ -69,7 +69,7 @@ public class AccountingLedgerApp {
         System.out.println("X) Exit");
         switch (inputScanner.nextLine().toUpperCase()) {
             case "D":
-                System.out.println("This is where I would run the addAmount() method, IF I HAD ONE!");
+                addDeposit();
                 return true;
             case "P":
                 System.out.println("This is where I would run the makePayment() method, IF I HAD ONE!");
@@ -85,7 +85,26 @@ public class AccountingLedgerApp {
 
     public static void addDeposit() {
 
+        System.out.print("Enter an amount: ");
+        float amount = inputScanner.nextFloat();
 
+        if (amount > 0) {
+
+            System.out.print("Enter a description: ");
+            String description = inputScanner.nextLine();
+
+            System.out.print("Enter a vendor: ");
+            String vendor = inputScanner.nextLine();
+
+            if (transactions.add(new Transaction(description, vendor, amount))) {
+                System.out.println("Deposit successful.");
+            } else {
+                System.out.println("ERROR: Deposit could not be made.");
+            }
+
+        } else {
+            System.out.println("ERROR: Deposit amount must be positive.");
+        }
 
     }
 
