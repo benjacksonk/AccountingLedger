@@ -28,19 +28,17 @@ public class Transaction {
     }
 
     public String asText() {
-        return  date.getYear()
-                + " "
-                + date.getMonth()
-                + " "
-                + date.getDayOfMonth()
-                + " @ "
-                + time.toString()
-                + ", "
-                + description
-                + ", "
-                + vendor
-                + ", $ "
-                + String.format("%.2f", amount);
+        return String.format("$ %13.2f,  %-17s  @  %-8s,  %s,  %s",
+                this.amount,
+                String.format("%d %s %02d",
+                        this.date.getYear(),
+                        this.date.getMonth(),
+                        this.date.getDayOfMonth()
+                ),
+                this.time,
+                this.description,
+                this.vendor
+        );
     }
 
     public LocalDate getDate() {
