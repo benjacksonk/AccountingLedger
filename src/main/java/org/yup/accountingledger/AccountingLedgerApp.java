@@ -1,52 +1,51 @@
 package org.yup.accountingledger;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public class AccountingLedgerApp {
 
     public static void main(String[] args) {
 
-        System.out.println("this is the new text i want to show");
+        getTransactions();
 
     }
 
-    public static void homeMenu() {
+    public static void getTransactions() {
 
-        // D - add deposit
-        // P - make payment a.k.a. debit
-        // L - ledgerMenu()
-        // X - exit
+        try {
 
-    }
+            FileReader tReader = new FileReader("transactions.csv");
+            BufferedReader tReaderBetter = new BufferedReader(tReader);
 
-    public static void addDeposit() {
+            tReaderBetter.readLine();
+            for(String line = tReaderBetter.readLine(); line != null; line = tReaderBetter.readLine()) {
 
+                String[] lineSegments = line.split("\\|");
 
+                LocalDate date = LocalDate.parse(lineSegments[0]);
+                LocalTime time = LocalTime.parse(lineSegments[1]);
+                String description = lineSegments[2];
+                String vendor = lineSegments[3];
+                float amount = Float.parseFloat(lineSegments[4]);
 
-    }
+                Transaction newTransaction = new Transaction(date, time, description, vendor, amount);
 
-    public static void makePayment() {
+                System.out.println(newTransaction.asText());
 
+            }
 
+            tReaderBetter.close();
+            tReader.close();
 
-    }
+        } catch (IOException e) {
 
-    public static void ledgerMenu() {
+            System.out.println("file no workey.");
 
-        // A - all
-        // D - deposits
-        // P - payments
-        // R - reportsMenu()
-        // H - home
-
-    }
-
-    public static void reportsMenu() {
-
-        // 1 - month to date
-        // 2 - previous month
-        // 3 - year to date
-        // 4 - previous year
-        // 5 - search by vendor
-        // 0 - back
+        }
 
     }
 
