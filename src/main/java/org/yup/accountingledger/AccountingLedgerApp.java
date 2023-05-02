@@ -65,7 +65,7 @@ public class AccountingLedgerApp {
             System.out.println("L) Ledger");
             System.out.println("X) Exit");
             try {
-                switch (inputScanner.nextLine().toUpperCase()) {
+                switch (promptUserLine().toUpperCase()) {
                     case "D" -> addDeposit();
                     case "P" -> makePayment();
                     case "L" -> ledgerMenu();
@@ -79,19 +79,13 @@ public class AccountingLedgerApp {
 
     private static void addDeposit() {
 
-        System.out.print("Enter the deposit amount: ");
         try {
 
-            float amount = promptUserInt();
-
+            float amount = promptUserInt("Enter the deposit amount: ");
             if (amount > 0) {
 
-                System.out.print("Enter the description: ");
-                String description = inputScanner.nextLine();
-
-                System.out.print("Enter the vendor: ");
-                inputScanner.nextLine();
-                String vendor = inputScanner.nextLine();
+                String description = promptUserLine("Enter the description: ");
+                String vendor = promptUserLine("Enter the vendor: ");
 
                 if (transactions.add(new Transaction(description, vendor, amount))) {
                     System.out.println("Deposit successful.");
@@ -111,18 +105,13 @@ public class AccountingLedgerApp {
 
     private static void makePayment() {
 
-        System.out.print("Enter the payment amount: ");
         try {
 
-            float amount = promptUserFloat();
-
+            float amount = promptUserFloat("Enter the payment amount");
             if (amount > 0) {
 
-                System.out.print("Enter the description: ");
-                String description = inputScanner.nextLine();
-
-                System.out.print("Enter the vendor: ");
-                String vendor = inputScanner.nextLine();
+                String description = promptUserLine("Enter the description: ");
+                String vendor = promptUserLine("Enter the vendor: ");
 
                 if (transactions.add(new Transaction(description, vendor, -amount))) {
                     System.out.println("Payment successful.");
@@ -149,7 +138,7 @@ public class AccountingLedgerApp {
             System.out.println("R) View Reports");
             System.out.println("H) Home");
             try {
-                switch (inputScanner.nextLine().toUpperCase()) {
+                switch (promptUserLine().toUpperCase()) {
                     case "A" -> viewAll();
                     case "D" -> viewDeposits();
                     case "P" -> viewPayments();
@@ -185,7 +174,6 @@ public class AccountingLedgerApp {
     }
 
     private static void reportsMenu() {
-
         for (boolean loop = true; loop; ) {
             System.out.println("REPORTS MENU");
             System.out.println("1) Month to Date");
@@ -195,18 +183,50 @@ public class AccountingLedgerApp {
             System.out.println("5) Search by vendor");
             System.out.println("0) Back");
             try {
+                LocalDate now = LocalDate.now();
+                LocalDate earliest;
                 switch (promptUserInt()) {
-                    case 1,2,3,4,5 -> System.out.println("Coming Soon™");
-                    default  -> loop = false;
+                    case 1  -> viewReportsBetween(
+                            now.withDayOfMonth(1),
+                            now
+                    );
+                    case 2  -> viewReportsBetween(
+                            earliest = now.withMonth(now.getMonthValue()-1).withDayOfMonth(1),
+                            earliest.withDayOfMonth(earliest.lengthOfMonth())
+                    );
+                    case 3  -> viewReportsBetween(
+                            now.withDayOfYear(1),
+                            now
+                    );
+                    case 4  -> viewReportsBetween(
+                            earliest = now.withYear(now.getYear()-1).withDayOfYear(1),
+                            earliest.withDayOfYear(earliest.lengthOfYear())
+                    );
+                    case 5  -> System.out.println("Coming Soon™");
+                    default -> loop = false;
                 }
             } catch (Exception e) {
                 loop = false;
             }
         }
+    }
 
+    private static void viewReportsBetween(LocalDate earliest, LocalDate latest) {
+        for (Transaction transaction : transactions) {
+            if (!transaction.date.isBefore(earliest) && !transaction.date.isAfter(latest)) {
+                System.out.println(transaction.asText());
+            }
+        }
     }
 
     private static int promptUserInt() {
+        int input = inputScanner.nextInt();
+        inputScanner.nextLine(); //consume leftover newline char to prevent headache
+        return input;
+    }
+
+    private static int promptUserInt(String prompt) {
+        System.out.println(prompt);
         int input = inputScanner.nextInt();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
         return input;
@@ -216,6 +236,22 @@ public class AccountingLedgerApp {
         float input = inputScanner.nextFloat();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
         return input;
+    }
+
+    private static float promptUserFloat(String prompt) {
+        System.out.println(prompt);
+        float input = inputScanner.nextFloat();
+        inputScanner.nextLine(); //consume leftover newline char to prevent headache
+        return input;
+    }
+
+    private static String promptUserLine() {
+        return inputScanner.nextLine();
+    }
+
+    private static String promptUserLine(String prompt) {
+        System.out.println(prompt);
+        return inputScanner.nextLine();
     }
 
 }
