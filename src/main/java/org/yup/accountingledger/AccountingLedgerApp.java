@@ -1,12 +1,13 @@
 package org.yup.accountingledger;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Scanner;
+
+import static java.util.Comparator.comparing;
 
 public class AccountingLedgerApp {
 
@@ -14,22 +15,23 @@ public class AccountingLedgerApp {
     private static Scanner inputScanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        transactions.addAll(getTransactions());
+        transactions.addAll(readTransactionsFile());
         homeMenu();
+        writeTransactionsFile(transactions);
         System.out.println("Exiting application.");
     }
 
-    private static ArrayList<Transaction> getTransactions() {
+    private static ArrayList<Transaction> readTransactionsFile() {
 
         ArrayList<Transaction> transactions = new ArrayList<>();
 
         try {
 
-            FileReader tReader = new FileReader("transactions.csv");
-            BufferedReader tReaderBetter = new BufferedReader(tReader);
+            FileReader ledgerFileReader = new FileReader("transactions.csv");
+            BufferedReader ledgerFileReaderButBetter = new BufferedReader(ledgerFileReader);
 
-            tReaderBetter.readLine();
-            for(String line = tReaderBetter.readLine(); line != null; line = tReaderBetter.readLine()) {
+            ledgerFileReaderButBetter.readLine();
+            for(String line = ledgerFileReaderButBetter.readLine(); line != null; line = ledgerFileReaderButBetter.readLine()) {
 
                 String[] lineSegments = line.split("\\|");
 
@@ -41,11 +43,12 @@ public class AccountingLedgerApp {
 
                 Transaction newTransaction = new Transaction(date, time, description, vendor, amount);
                 transactions.add(newTransaction);
+                transactions.sort(comparing(Transaction::getDate, Collections.reverseOrder()));
 
             }
 
-            tReaderBetter.close();
-            tReader.close();
+            ledgerFileReaderButBetter.close();
+            ledgerFileReader.close();
 
         } catch (IOException e) {
 
@@ -54,6 +57,37 @@ public class AccountingLedgerApp {
         }
 
         return transactions;
+
+    }
+
+    private static void writeTransactionsFile(ArrayList<Transaction> transactions) {
+
+        try {
+
+            FileWriter ledgerFileWriter = new FileWriter("ledger.csv");
+            BufferedWriter ledgerFileWriterButBetter = new BufferedWriter(ledgerFileWriter);
+
+            ledgerFileWriterButBetter.write("date|time|description|vendor|amount");
+            //EXAMPLE: '2023-04-15|10:13:25|ergonomic keyboard|Amazon|-89.50'
+            for (int i = 0; i < transactions.size(); i++) {
+                Transaction transaction = transactions.get(i);
+                ledgerFileWriterButBetter.write(
+                    String.format(
+                        "%n%s|%5s|%s|%s|%.2f",
+                        transaction.getDate(),
+                        transaction.getTime(),
+                        transaction.getDescription(),
+                        transaction.getVendor(),
+                        transaction.getAmount()
+                    )
+                );
+            }
+
+            ledgerFileWriterButBetter.close();
+            ledgerFileWriter.close();
+
+        } catch (IOException e) {
+        }
 
     }
 
@@ -66,65 +100,41 @@ public class AccountingLedgerApp {
             System.out.println("X) Exit");
             try {
                 switch (promptUserLine().toUpperCase()) {
-                    case "D" -> addDeposit();
-                    case "P" -> makePayment();
+                    case "D" -> addTransaction(false);
+                    case "P" -> addTransaction(true);
                     case "L" -> ledgerMenu();
-                    default  -> loop = false;
+                    case "X" -> loop = false;
+                    default  -> System.out.println("ERROR.\nRepeating menu...");
                 }
             } catch (Exception e) {
-                loop = false;
+                System.out.println("ERROR.\nRepeating menu...");
             }
         }
     }
 
-    private static void addDeposit() {
+    private static void addTransaction(boolean isDebit) {
 
         try {
 
-            float amount = promptUserInt("Enter the deposit amount: ");
+            float amount = promptUserFloat("Enter the transaction amount: ");
+
             if (amount > 0) {
 
                 String description = promptUserLine("Enter the description: ");
                 String vendor = promptUserLine("Enter the vendor: ");
 
-                if (transactions.add(new Transaction(description, vendor, amount))) {
-                    System.out.println("Deposit successful.");
+                if (transactions.add(new Transaction(description, vendor, (isDebit ? -amount : amount)))) {
+                    System.out.println("Transaction successful.");
                 } else {
-                    System.out.println("ERROR: Deposit could not be made.");
+                    System.out.println("ERROR: Transaction could not be made.");
                 }
 
             } else {
-                System.out.println("ERROR: Deposit amount must be positive.");
+                System.out.println("ERROR: Transaction amount must be positive.");
             }
 
         } catch (Exception e) {
-            System.out.println("ERROR: Deposit could not be made.");
-        }
-
-    }
-
-    private static void makePayment() {
-
-        try {
-
-            float amount = promptUserFloat("Enter the payment amount");
-            if (amount > 0) {
-
-                String description = promptUserLine("Enter the description: ");
-                String vendor = promptUserLine("Enter the vendor: ");
-
-                if (transactions.add(new Transaction(description, vendor, -amount))) {
-                    System.out.println("Payment successful.");
-                } else {
-                    System.out.println("ERROR: Payment could not be made.");
-                }
-
-            } else {
-                System.out.println("ERROR: Payment amount must be positive.");
-            }
-
-        } catch (Exception e) {
-            System.out.println("ERROR: Payment could not be made.");
+            System.out.println("ERROR: Transaction could not be made.");
         }
 
     }
@@ -143,10 +153,11 @@ public class AccountingLedgerApp {
                     case "D" -> viewDeposits();
                     case "P" -> viewPayments();
                     case "R" -> reportsMenu();
-                    default  -> loop = false;
+                    case "H" -> loop = false;
+                    default  -> System.out.println("ERROR.\nRepeating menu...");
                 }
             } catch (Exception e) {
-                loop = false;
+                System.out.println("ERROR.\nRepeating menu...");
             }
         }
     }
@@ -159,7 +170,7 @@ public class AccountingLedgerApp {
 
     private static void viewDeposits() {
         for (Transaction transaction : transactions) {
-            if (transaction.amount > 0) {
+            if (transaction.getAmount() > 0) {
                 System.out.println(transaction.asText());
             }
         }
@@ -167,7 +178,7 @@ public class AccountingLedgerApp {
 
     private static void viewPayments() {
         for (Transaction transaction : transactions) {
-            if (transaction.amount < 0) {
+            if (transaction.getAmount() < 0) {
                 System.out.println(transaction.asText());
             }
         }
@@ -202,18 +213,27 @@ public class AccountingLedgerApp {
                             earliest = now.withYear(now.getYear()-1).withDayOfYear(1),
                             earliest.withDayOfYear(earliest.lengthOfYear())
                     );
-                    case 5  -> System.out.println("Coming Soon™");
-                    default -> loop = false;
+                    case 5  -> viewReportsByVendor(promptUserLine("Enter a vendor: "));
+                    case 0  -> loop = false;
+                    default -> System.out.println("ERROR.\nRepeating menu...");
                 }
             } catch (Exception e) {
-                loop = false;
+                System.out.println("ERROR.\nRepeating menu...");
             }
         }
     }
 
     private static void viewReportsBetween(LocalDate earliest, LocalDate latest) {
         for (Transaction transaction : transactions) {
-            if (!transaction.date.isBefore(earliest) && !transaction.date.isAfter(latest)) {
+            if (!transaction.getDate().isBefore(earliest) && !transaction.getDate().isAfter(latest)) {
+                System.out.println(transaction.asText());
+            }
+        }
+    }
+
+    private static void viewReportsByVendor(String vendor) {
+        for (Transaction transaction : transactions) {
+            if (transaction.getVendor() == vendor) {
                 System.out.println(transaction.asText());
             }
         }

@@ -5,11 +5,11 @@ import java.time.LocalTime;
 
 public class Transaction {
 
-    LocalDate date;
-    LocalTime time;
-    String description;
-    String vendor;
-    float amount;
+    private LocalDate date;
+    private LocalTime time;
+    private String description;
+    private String vendor;
+    private float amount;
 
     public Transaction(LocalDate date, LocalTime time, String description, String vendor, float amount) {
         this.date = date;
