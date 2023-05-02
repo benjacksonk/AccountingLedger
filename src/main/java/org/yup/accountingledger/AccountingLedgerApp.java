@@ -10,20 +10,16 @@ import java.util.Scanner;
 
 public class AccountingLedgerApp {
 
-    public static ArrayList<Transaction> transactions = new ArrayList<>();
-    public static Scanner inputScanner = new Scanner(System.in);
+    private static ArrayList<Transaction> transactions = new ArrayList<>();
+    private static Scanner inputScanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-
         transactions.addAll(getTransactions());
-
-        for(boolean running = homeMenu(); running; running = homeMenu()){
-            System.out.println();
-        }
-
+        homeMenu();
+        System.out.println("Exiting application.");
     }
 
-    public static ArrayList<Transaction> getTransactions() {
+    private static ArrayList<Transaction> getTransactions() {
 
         ArrayList<Transaction> transactions = new ArrayList<>();
 
@@ -61,100 +57,165 @@ public class AccountingLedgerApp {
 
     }
 
-    public static boolean homeMenu() {
-        System.out.println("HOME MENU");
-        System.out.println("D) Add Deposit");
-        System.out.println("P) Make Payment (Debit)");
-        System.out.println("L) Ledger");
-        System.out.println("X) Exit");
-        switch (inputScanner.nextLine().toUpperCase()) {
-            case "D":
-                addDeposit();
-                return true;
-            case "P":
-                System.out.println("This is where I would run the makePayment() method, IF I HAD ONE!");
-                return true;
-            case "L":
-                ledgerMenu();
-                return true;
-            default:
-                System.out.println("Exiting application.");
-                return false;
+    private static void homeMenu() {
+        for (boolean loop = true; loop; ) {
+            System.out.println("HOME MENU");
+            System.out.println("D) Add Deposit");
+            System.out.println("P) Make Payment (Debit)");
+            System.out.println("L) Ledger");
+            System.out.println("X) Exit");
+            try {
+                switch (inputScanner.nextLine().toUpperCase()) {
+                    case "D" -> addDeposit();
+                    case "P" -> makePayment();
+                    case "L" -> ledgerMenu();
+                    default  -> loop = false;
+                }
+            } catch (Exception e) {
+                loop = false;
+            }
         }
     }
 
-    public static void addDeposit() {
+    private static void addDeposit() {
 
-        System.out.print("Enter an amount: ");
-        float amount = inputScanner.nextFloat();
+        System.out.print("Enter the deposit amount: ");
+        try {
 
-        if (amount > 0) {
+            float amount = promptUserInt();
 
-            System.out.print("Enter a description: ");
-            String description = inputScanner.nextLine();
+            if (amount > 0) {
 
-            System.out.print("Enter a vendor: ");
-            String vendor = inputScanner.nextLine();
+                System.out.print("Enter the description: ");
+                String description = inputScanner.nextLine();
 
-            if (transactions.add(new Transaction(description, vendor, amount))) {
-                System.out.println("Deposit successful.");
+                System.out.print("Enter the vendor: ");
+                inputScanner.nextLine();
+                String vendor = inputScanner.nextLine();
+
+                if (transactions.add(new Transaction(description, vendor, amount))) {
+                    System.out.println("Deposit successful.");
+                } else {
+                    System.out.println("ERROR: Deposit could not be made.");
+                }
+
             } else {
-                System.out.println("ERROR: Deposit could not be made.");
+                System.out.println("ERROR: Deposit amount must be positive.");
             }
 
-        } else {
-            System.out.println("ERROR: Deposit amount must be positive.");
+        } catch (Exception e) {
+            System.out.println("ERROR: Deposit could not be made.");
         }
 
     }
 
-    public static void makePayment() {
+    private static void makePayment() {
 
+        System.out.print("Enter the payment amount: ");
+        try {
 
+            float amount = promptUserFloat();
+
+            if (amount > 0) {
+
+                System.out.print("Enter the description: ");
+                String description = inputScanner.nextLine();
+
+                System.out.print("Enter the vendor: ");
+                String vendor = inputScanner.nextLine();
+
+                if (transactions.add(new Transaction(description, vendor, -amount))) {
+                    System.out.println("Payment successful.");
+                } else {
+                    System.out.println("ERROR: Payment could not be made.");
+                }
+
+            } else {
+                System.out.println("ERROR: Payment amount must be positive.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("ERROR: Payment could not be made.");
+        }
 
     }
 
-    public static void ledgerMenu() {
-        System.out.println("LEDGER MENU");
-        System.out.println("A) View All");
-        System.out.println("D) View Deposits");
-        System.out.println("P) View Payments");
-        System.out.println("R) View Reports");
-        System.out.println("H) Home");
-        switch (inputScanner.nextLine().toUpperCase()) {
-            case "A":
-                viewAll();
-                break;
-            case "D":
-                System.out.println("This is where I would run the viewDeposits() method, IF I HAD ONE!");
-                break;
-            case "P":
-                System.out.println("This is where I would run the viewPayments() method, IF I HAD ONE!");
-                break;
-            case "R":
-                System.out.println("This is where I would run the viewReports() method, IF I HAD ONE!");
-                break;
-            default:
-                System.out.println("Returning to home menu.");
-                break;
+    private static void ledgerMenu() {
+        for (boolean loop = true; loop; ) {
+            System.out.println("LEDGER MENU");
+            System.out.println("A) View All");
+            System.out.println("D) View Deposits");
+            System.out.println("P) View Payments");
+            System.out.println("R) View Reports");
+            System.out.println("H) Home");
+            try {
+                switch (inputScanner.nextLine().toUpperCase()) {
+                    case "A" -> viewAll();
+                    case "D" -> viewDeposits();
+                    case "P" -> viewPayments();
+                    case "R" -> reportsMenu();
+                    default  -> loop = false;
+                }
+            } catch (Exception e) {
+                loop = false;
+            }
         }
     }
 
-    public static void viewAll() {
+    private static void viewAll() {
         for (Transaction transaction : transactions) {
             System.out.println(transaction.asText());
         }
     }
 
-    public static void reportsMenu() {
+    private static void viewDeposits() {
+        for (Transaction transaction : transactions) {
+            if (transaction.amount > 0) {
+                System.out.println(transaction.asText());
+            }
+        }
+    }
 
-        // 1 - month to date
-        // 2 - previous month
-        // 3 - year to date
-        // 4 - previous year
-        // 5 - search by vendor
-        // 0 - back
+    private static void viewPayments() {
+        for (Transaction transaction : transactions) {
+            if (transaction.amount < 0) {
+                System.out.println(transaction.asText());
+            }
+        }
+    }
 
+    private static void reportsMenu() {
+
+        for (boolean loop = true; loop; ) {
+            System.out.println("REPORTS MENU");
+            System.out.println("1) Month to Date");
+            System.out.println("2) Previous Month");
+            System.out.println("3) Year to Date");
+            System.out.println("4) Previous Year");
+            System.out.println("5) Search by vendor");
+            System.out.println("0) Back");
+            try {
+                switch (promptUserInt()) {
+                    case 1,2,3,4,5 -> System.out.println("Coming Soon™");
+                    default  -> loop = false;
+                }
+            } catch (Exception e) {
+                loop = false;
+            }
+        }
+
+    }
+
+    private static int promptUserInt() {
+        int input = inputScanner.nextInt();
+        inputScanner.nextLine(); //consume leftover newline char to prevent headache
+        return input;
+    }
+
+    private static float promptUserFloat() {
+        float input = inputScanner.nextFloat();
+        inputScanner.nextLine(); //consume leftover newline char to prevent headache
+        return input;
     }
 
 }
