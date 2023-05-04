@@ -2,9 +2,10 @@ package org.yup.accountingledger;
 
 import java.io.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Scanner;
 
 import static java.util.Comparator.comparing;
@@ -13,25 +14,40 @@ public class AccountingLedgerApp {
 
     private static ArrayList<Transaction> transactions = new ArrayList<>();
     private static Scanner inputScanner = new Scanner(System.in);
+    private static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy MMM dd,  hh:mm a");
+    private static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy MMM dd");
+
+
 
     public static void main(String[] args) {
-        transactions.addAll(readTransactionsFile());
-        homeMenu();
-        writeTransactionsFile(transactions);
+
+        String transactionsFileName = "ledger.csv";
+
+        transactions.addAll(readTransactionsFile(transactionsFileName));
+
+        showHomeMenu();
+
+        writeTransactionsFile(transactionsFileName);
+
         System.out.println("Exiting application.");
+
     }
 
-    private static ArrayList<Transaction> readTransactionsFile() {
+
+
+    private static ArrayList<Transaction> readTransactionsFile(String fileName) {
 
         ArrayList<Transaction> transactions = new ArrayList<>();
 
         try {
 
-            FileReader ledgerFileReader = new FileReader("transactions.csv");
-            BufferedReader ledgerFileReaderButBetter = new BufferedReader(ledgerFileReader);
+            FileReader ledgerFileReader = new FileReader(fileName);
+            BufferedReader ledgerFileBufferedReader = new BufferedReader(ledgerFileReader);
 
-            ledgerFileReaderButBetter.readLine();
-            for(String line = ledgerFileReaderButBetter.readLine(); line != null; line = ledgerFileReaderButBetter.readLine()) {
+            ledgerFileBufferedReader.readLine(); //skip beyond the header line
+
+            String line;
+            while((line = ledgerFileBufferedReader.readLine()) != null) {
 
                 String[] lineSegments = line.split("\\|");
 
@@ -41,59 +57,63 @@ public class AccountingLedgerApp {
                 String vendor = lineSegments[3];
                 float amount = Float.parseFloat(lineSegments[4]);
 
-                Transaction newTransaction = new Transaction(date, time, description, vendor, amount);
+                Transaction newTransaction = new Transaction(LocalDateTime.of(date, time), description, vendor, amount);
                 transactions.add(newTransaction);
-                transactions.sort(comparing(Transaction::getDate, Collections.reverseOrder()));
 
             }
 
-            ledgerFileReaderButBetter.close();
+            transactions.sort(comparing(Transaction::getDateTime).reversed());
+
+            ledgerFileBufferedReader.close();
             ledgerFileReader.close();
 
         } catch (IOException e) {
-
-            System.out.println("file no workey.");
-
+            System.out.println("ERROR while trying to read file");
+            e.printStackTrace();
         }
 
         return transactions;
 
     }
 
-    private static void writeTransactionsFile(ArrayList<Transaction> transactions) {
+    private static void writeTransactionsFile(String fileName) {
 
         try {
 
-            FileWriter ledgerFileWriter = new FileWriter("ledger.csv");
-            BufferedWriter ledgerFileWriterButBetter = new BufferedWriter(ledgerFileWriter);
+            FileWriter ledgerFileWriter = new FileWriter(fileName);
+            BufferedWriter ledgerBufferedWriter = new BufferedWriter(ledgerFileWriter);
 
-            ledgerFileWriterButBetter.write("date|time|description|vendor|amount");
             //EXAMPLE: '2023-04-15|10:13:25|ergonomic keyboard|Amazon|-89.50'
-            for (int i = 0; i < transactions.size(); i++) {
-                Transaction transaction = transactions.get(i);
-                ledgerFileWriterButBetter.write(
-                    String.format(
-                        "%n%s|%5s|%s|%s|%.2f",
-                        transaction.getDate(),
-                        transaction.getTime(),
-                        transaction.getDescription(),
-                        transaction.getVendor(),
-                        transaction.getAmount()
-                    )
+
+            ledgerBufferedWriter.write("date|time|description|vendor|amount");
+
+            for (Transaction transaction : transactions) {
+                ledgerBufferedWriter.write(
+                        String.format("%n%s|%s|%s|%s|%.2f",
+                                transaction.getDateTime().toLocalDate(),
+                                transaction.getDateTime().toLocalTime(),
+                                transaction.getDescription(),
+                                transaction.getVendor(),
+                                transaction.getAmount()
+                        )
                 );
             }
 
-            ledgerFileWriterButBetter.close();
+            ledgerBufferedWriter.close();
             ledgerFileWriter.close();
 
         } catch (IOException e) {
+            System.out.println("ERROR while trying to write file");
+            e.printStackTrace();
         }
 
     }
 
-    private static void homeMenu() {
+
+
+    private static void showHomeMenu() {
         for (boolean loop = true; loop; ) {
-            System.out.println("HOME MENU");
+            System.out.println("\nHOME MENU");
             System.out.println("D) Add Deposit");
             System.out.println("P) Make Payment (Debit)");
             System.out.println("L) Ledger");
@@ -102,21 +122,25 @@ public class AccountingLedgerApp {
                 switch (promptUserLine().toUpperCase()) {
                     case "D" -> addTransaction(false);
                     case "P" -> addTransaction(true);
-                    case "L" -> ledgerMenu();
+                    case "L" -> showLedgerMenu();
                     case "X" -> loop = false;
-                    default  -> System.out.println("ERROR.\nRepeating menu...");
+                    default  -> System.out.println("ERROR: Reports menu, invalid input");
                 }
             } catch (Exception e) {
-                System.out.println("ERROR.\nRepeating menu...");
+                loop = false;
+                System.out.println("ERROR: Home menu, exception occurred");
+                e.printStackTrace();
             }
         }
     }
 
     private static void addTransaction(boolean isDebit) {
 
+        String transactionType = isDebit ? "Debit" : "Deposit";
+
         try {
 
-            float amount = promptUserFloat("Enter the transaction amount: ");
+            float amount = promptUserFloat(String.format("%nEnter the %s amount: ", transactionType.toLowerCase()));
 
             if (amount > 0) {
 
@@ -124,24 +148,25 @@ public class AccountingLedgerApp {
                 String vendor = promptUserLine("Enter the vendor: ");
 
                 if (transactions.add(new Transaction(description, vendor, (isDebit ? -amount : amount)))) {
-                    System.out.println("Transaction successful.");
+                    transactions.sort(comparing(Transaction::getDateTime).reversed());
+                    System.out.printf("%s successful.%n", transactionType);
                 } else {
-                    System.out.println("ERROR: Transaction could not be made.");
+                    System.out.printf("ERROR: %s could not be made.%n", transactionType);
                 }
 
             } else {
-                System.out.println("ERROR: Transaction amount must be positive.");
+                System.out.printf("ERROR: %s amount must be positive.%n", transactionType);
             }
 
         } catch (Exception e) {
-            System.out.println("ERROR: Transaction could not be made.");
+            System.out.printf("ERROR: %s could not be made.", transactionType);
         }
 
     }
 
-    private static void ledgerMenu() {
+    private static void showLedgerMenu() {
         for (boolean loop = true; loop; ) {
-            System.out.println("LEDGER MENU");
+            System.out.println("\nLEDGER MENU");
             System.out.println("A) View All");
             System.out.println("D) View Deposits");
             System.out.println("P) View Payments");
@@ -149,120 +174,168 @@ public class AccountingLedgerApp {
             System.out.println("H) Home");
             try {
                 switch (promptUserLine().toUpperCase()) {
-                    case "A" -> viewAll();
-                    case "D" -> viewDeposits();
-                    case "P" -> viewPayments();
-                    case "R" -> reportsMenu();
+                    case "A" -> showAllTransactions();
+                    case "D" -> showDepositTransactions();
+                    case "P" -> showDebitTransactions();
+                    case "R" -> showReportsMenu();
                     case "H" -> loop = false;
-                    default  -> System.out.println("ERROR.\nRepeating menu...");
+                    default  -> System.out.println("ERROR: Ledger menu, invalid input");
                 }
             } catch (Exception e) {
-                System.out.println("ERROR.\nRepeating menu...");
+                loop = false;
+                System.out.println("ERROR: Ledger menu, exception occurred");
+                e.printStackTrace();
             }
         }
     }
 
-    private static void viewAll() {
+    private static void showTransaction(Transaction transaction) {
+        System.out.printf("%s  $ %13.2f,  %s,  %s%n",
+                transaction.getDateTime().format(dateTimeFormatter),
+                transaction.getAmount(),
+                transaction.getDescription(),
+                transaction.getVendor()
+        );
+    }
+
+    private static void showAllTransactions() {
+        System.out.println();
         for (Transaction transaction : transactions) {
-            System.out.println(transaction.asText());
+            showTransaction(transaction);
         }
     }
 
-    private static void viewDeposits() {
+    private static void showDepositTransactions() {
+        System.out.println();
         for (Transaction transaction : transactions) {
             if (transaction.getAmount() > 0) {
-                System.out.println(transaction.asText());
+                showTransaction(transaction);
             }
         }
     }
 
-    private static void viewPayments() {
+    private static void showDebitTransactions() {
+        System.out.println();
         for (Transaction transaction : transactions) {
             if (transaction.getAmount() < 0) {
-                System.out.println(transaction.asText());
+                showTransaction(transaction);
             }
         }
     }
 
-    private static void reportsMenu() {
+    private static void showReportsMenu() {
+
         for (boolean loop = true; loop; ) {
-            System.out.println("REPORTS MENU");
+
+            System.out.println("\nREPORTS MENU");
             System.out.println("1) Month to Date");
             System.out.println("2) Previous Month");
             System.out.println("3) Year to Date");
             System.out.println("4) Previous Year");
             System.out.println("5) Search by vendor");
             System.out.println("0) Back");
+
             try {
+
+                int userChoice = promptUserInt();
+
                 LocalDate now = LocalDate.now();
                 LocalDate earliest;
-                switch (promptUserInt()) {
-                    case 1  -> viewReportsBetween(
+
+                switch (userChoice) {
+                    case 1  -> showReportsByDate(
                             now.withDayOfMonth(1),
                             now
                     );
-                    case 2  -> viewReportsBetween(
-                            earliest = now.withMonth(now.getMonthValue()-1).withDayOfMonth(1),
+                    case 2  -> showReportsByDate(
+                            earliest = now.withMonth(now.getMonthValue() - 1).withDayOfMonth(1),
                             earliest.withDayOfMonth(earliest.lengthOfMonth())
                     );
-                    case 3  -> viewReportsBetween(
+                    case 3  -> showReportsByDate(
                             now.withDayOfYear(1),
                             now
                     );
-                    case 4  -> viewReportsBetween(
-                            earliest = now.withYear(now.getYear()-1).withDayOfYear(1),
+                    case 4  -> showReportsByDate(
+                            earliest = now.withYear(now.getYear() - 1).withDayOfYear(1),
                             earliest.withDayOfYear(earliest.lengthOfYear())
                     );
-                    case 5  -> viewReportsByVendor(promptUserLine("Enter a vendor: "));
+                    case 5  -> showReportsByVendor(promptUserLine("Enter a vendor: "));
                     case 0  -> loop = false;
-                    default -> System.out.println("ERROR.\nRepeating menu...");
+                    default -> System.out.println("ERROR: Reports menu, invalid input");
                 }
+
             } catch (Exception e) {
-                System.out.println("ERROR.\nRepeating menu...");
+                loop = false;
+                System.out.println("ERROR: Reports menu, exception occurred");
+                e.printStackTrace();
             }
+
         }
+
     }
 
-    private static void viewReportsBetween(LocalDate earliest, LocalDate latest) {
+    private static void showReportsByDate(LocalDate earliest, LocalDate latest) {
+
+        System.out.printf("%nTRANSACTION REPORT (%s - %s):%n",
+                earliest.format(dateFormatter),
+                latest.format(dateFormatter)
+        );
+
+        float balance = 0;
+
         for (Transaction transaction : transactions) {
-            if (!transaction.getDate().isBefore(earliest) && !transaction.getDate().isAfter(latest)) {
-                System.out.println(transaction.asText());
+            if (!transaction.getDateTime().toLocalDate().isBefore(earliest) && !transaction.getDateTime().toLocalDate().isAfter(latest)) {
+                balance += transaction.getAmount();
+                showTransaction(transaction);
             }
         }
+
+        System.out.printf("Balance: $ %.2f%n", balance);
+
     }
 
-    private static void viewReportsByVendor(String vendor) {
+    private static void showReportsByVendor(String vendor) {
+
+        System.out.printf("%nTRANSACTION REPORT (Vendor: %s):%n", vendor);
+
+        float balance = 0;
+
         for (Transaction transaction : transactions) {
-            if (transaction.getVendor() == vendor) {
-                System.out.println(transaction.asText());
+            if (transaction.getVendor().equalsIgnoreCase(vendor)) {
+                showTransaction(transaction);
             }
         }
+
+        System.out.printf("Balance: $ %.2f%n", balance);
+
     }
+
+
 
     private static int promptUserInt() {
-        int input = inputScanner.nextInt();
+        int userInput = inputScanner.nextInt();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
-        return input;
+        return userInput;
     }
 
     private static int promptUserInt(String prompt) {
-        System.out.println(prompt);
-        int input = inputScanner.nextInt();
+        System.out.print(prompt);
+        int userInput = inputScanner.nextInt();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
-        return input;
+        return userInput;
     }
 
     private static float promptUserFloat() {
-        float input = inputScanner.nextFloat();
+        float userInput = inputScanner.nextFloat();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
-        return input;
+        return userInput;
     }
 
     private static float promptUserFloat(String prompt) {
-        System.out.println(prompt);
-        float input = inputScanner.nextFloat();
+        System.out.print(prompt);
+        float userInput = inputScanner.nextFloat();
         inputScanner.nextLine(); //consume leftover newline char to prevent headache
-        return input;
+        return userInput;
     }
 
     private static String promptUserLine() {
@@ -270,7 +343,7 @@ public class AccountingLedgerApp {
     }
 
     private static String promptUserLine(String prompt) {
-        System.out.println(prompt);
+        System.out.print(prompt);
         return inputScanner.nextLine();
     }
 
