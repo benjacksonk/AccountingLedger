@@ -9,6 +9,8 @@ public class Transaction {
     private String vendor;
     private float amount;
 
+
+
     public Transaction(LocalDateTime dateTime, String description, String vendor, float amount) {
         this.dateTime = dateTime;
         this.description = description;
@@ -22,6 +24,8 @@ public class Transaction {
         this.vendor = vendor;
         this.amount = amount;
     }
+
+
 
     public LocalDateTime getDateTime() {
         return dateTime;
